@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Search, Bell, MenuIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 

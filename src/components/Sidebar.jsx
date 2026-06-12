@@ -6,9 +6,7 @@ import {
   Building2, 
   Image as ImageIcon, 
   LogOut, 
-  Sparkles,
-  ChevronLeft,
-  ChevronRight
+  Sparkles
 } from 'lucide-react';
 
 export default function Sidebar({ 

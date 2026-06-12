@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Building2, CheckCircle2, AlertTriangle, XCircle, X, Star } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Building2, CheckCircle2, AlertTriangle, X, Star } from 'lucide-react';
 
 const INITIAL_BUSINESSES = [
   { id: 1, name: 'TechMart Solutions', owner: 'Alex Mercer', category: 'Electronics', status: 'Approved', contact: 'contact@techmart.com', rating: 4.8 },
