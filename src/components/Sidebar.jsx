@@ -1,12 +1,17 @@
 import React from 'react';
+import logo from "../assets/logo.png"
+import minilogo from "../assets/minilogo.png"
+
 import { 
+  LayoutDashboard,
   Users, 
   Grid, 
   Layers, 
   Building2, 
   Image as ImageIcon, 
-  LogOut, 
-  Sparkles
+  CalendarRange,
+  FileSpreadsheet,
+  LogOut
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -16,21 +21,40 @@ export default function Sidebar({
   isCollapsed, 
   setIsCollapsed 
 }) {
+  // Ordered directly according to target specifications (skipping Islamic tab)
   const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'users', label: 'Users', icon: Users },
-    { id: 'category', label: 'Category', icon: Grid },
-    { id: 'subcategory', label: 'Subcategory', icon: Layers },
-    { id: 'business', label: 'Business', icon: Building2 },
+    { id: 'category', label: 'Categories', icon: Grid },
+    { id: 'business', label: 'Businesses', icon: Building2 },
     { id: 'banners', label: 'Banners', icon: ImageIcon },
+    { id: 'subcategory', label: 'Sub Categories', icon: Layers },
+    { id: 'eventBanners', label: 'Event Banners', icon: CalendarRange },
+    { id: 'excelUpload', label: 'Excel Upload', icon: FileSpreadsheet },
   ];
 
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-brand">
-        <div className="sidebar-logo">
-          <Sparkles size={18} fill="currentColor" />
-        </div>
-        <span className="sidebar-name text-gradient">LootBaazar</span>
+      <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '12px' }}>
+        {isCollapsed ? (
+          /* 1. When COLLAPSED: Show the mini brand logo cleanly sized without layout bugs */
+          <div className="relative flex items-center justify-center" style={{ width: '40px', height: '40px' }}>
+            <img
+              src={minilogo}
+              alt="Loot Bazaar Mini"
+              style={{ width: '36px', height: '36px', objectFit: 'contain' }}
+            />
+          </div>
+        ) : (
+          /* 2. When NOT COLLAPSED: Show the full typography brand logo asset */
+          <div className="relative flex items-center">
+            <img
+              src={logo}
+              alt="Loot Bazaar"
+              style={{ width: '150px', height: '40px', objectFit: 'contain' }}
+            />
+          </div>
+        )}
       </div>
 
       <nav className="sidebar-menu">

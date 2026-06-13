@@ -135,12 +135,12 @@ export default function UsersView() {
 
           <div className="table-actions">
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} size={16} />
+              <Search style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} size={16} />
               <input
                 type="text"
                 placeholder="Search name, email..."
                 className="search-input"
-                style={{ paddingLeft: '34px', width: '200px' }}
+                style={{ paddingLeft: '38px', width: '220px' }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -148,7 +148,7 @@ export default function UsersView() {
 
             <select
               className="search-input"
-              style={{ width: '130px', paddingLeft: '10px' }}
+              style={{ width: '140px', paddingLeft: '12px', paddingRight: '12px' }}
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
             >
@@ -180,7 +180,7 @@ export default function UsersView() {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textCombineUpright: 'center', padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  <td colSpan="5" style={{ padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
                     No users found matching filters.
                   </td>
                 </tr>
@@ -295,7 +295,7 @@ export default function UsersView() {
                   <select
                     id="user-role"
                     className="form-input"
-                    style={{ paddingLeft: '14px', background: 'var(--bg-tertiary)' }}
+                    style={{ paddingLeft: '14px' }}
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   >
@@ -311,7 +311,7 @@ export default function UsersView() {
                   <select
                     id="user-status"
                     className="form-input"
-                    style={{ paddingLeft: '14px', background: 'var(--bg-tertiary)' }}
+                    style={{ paddingLeft: '14px' }}
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   >
