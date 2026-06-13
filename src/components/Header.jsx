@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, ChevronLeft, ChevronRight, Moon, Sun } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -7,6 +7,21 @@ export default function Header({
   isCollapsed, 
   setIsCollapsed 
 }) {
+  // 1. Dark Mode State and Lifecycle handling
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
   // Translate activeTab id to human readable title
   const getTitle = () => {
     switch (activeTab) {
@@ -33,14 +48,27 @@ export default function Header({
       </div>
 
       <div className="header-right">
+        {/* Pill-shaped search bar with permanent black border config from app.css */}
         <div className="search-bar">
-          <Search className="search-icon" size={16} />
           <input 
             type="text" 
-            placeholder="Search panels..." 
+            placeholder="Find the perfect lot" 
             className="search-input"
           />
+          <div className="search-icon-btn">
+            <Search size={16} color="#FFFFFF" strokeWidth={3} />
+          </div>
         </div>
+
+        {/* 2. Brand New Theme Toggle Button */}
+        <button 
+          onClick={() => setDarkMode(!darkMode)} 
+          className="theme-toggle-btn"
+          title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {darkMode ? <Sun size={20} color="#FF5500" /> : <Moon size={20} color="#718096" />}
+        </button>
 
         <button className="header-icon-btn" title="Notifications">
           <Bell size={20} />

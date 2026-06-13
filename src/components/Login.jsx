@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from "../assets/logo.png"
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 export default function Login({ onLoginSuccess }) {
@@ -46,14 +47,26 @@ export default function Login({ onLoginSuccess }) {
   return (
     <div className="login-wrapper">
       <div className="login-glow"></div>
-      
+
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
-            <div className="login-logo-icon">
-              <Sparkles size={22} fill="currentColor" />
+            <div className="">
+              {/* <Sparkles size={22} fill="currentColor" /> */}
             </div>
-            <span className="login-logo-text">LootBaazar</span>
+            <div className="fixed inset-0 bg-white flex items-center justify-center">
+              <div className="relative animate-pulse ">
+                <img
+                  src={logo}
+                  alt="Loot Bazaar"
+                  className="logo-login w-[100px] drop-shadow-xl h-20"
+                />
+
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="h-full w-16 bg-white/40 rotate-12 animate-[shine_2s_infinite]"></div>
+                </div>
+              </div>
+            </div>
           </div>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '6px' }}>Welcome Back</h2>
           <p className="login-subtitle">Admin Control Panel</p>
@@ -124,7 +137,8 @@ export default function Login({ onLoginSuccess }) {
                   borderRadius: '50%',
                   animation: 'spin 0.8s linear infinite'
                 }}></div>
-                <style dangerouslySetInnerHTML={{__html: `
+                <style dangerouslySetInnerHTML={{
+                  __html: `
                   @keyframes spin { to { transform: rotate(360deg); } }
                 `}} />
                 <span>Logging in...</span>
@@ -139,10 +153,10 @@ export default function Login({ onLoginSuccess }) {
         </form>
 
         <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <button 
-            type="button" 
-            onClick={handleQuickFill} 
-            className="btn btn-secondary" 
+          <button
+            type="button"
+            onClick={handleQuickFill}
+            className="btn btn-secondary"
             style={{ fontSize: '12px', padding: '8px 12px', width: '100%', justifyContent: 'center' }}
           >
             Demo Quick Log In

@@ -13,24 +13,39 @@
   align-items: center;
   width: 100%;
   min-height: 100vh;
-  background: var(--bg-primary); /* Swapped legacy gradients for your clean peach canvas */
+  background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.12) 0%, transparent 45%),
+              var(--bg-primary);
   position: relative;
   overflow: hidden;
   padding: 20px;
 }
 
 .login-glow {
-  display: none; /* Removed legacy purple glowing orbs */
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  background: var(--accent-primary);
+  filter: blur(120px);
+  border-radius: 50%;
+  opacity: 0.15;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: pulseGlow 8s infinite alternate ease-in-out;
 }
 
 .login-card {
   width: 100%;
   max-width: 440px;
-  background: var(--bg-secondary);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: 40px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   animation: fadeIn var(--transition-normal) forwards;
   z-index: 2;
 }
@@ -51,12 +66,13 @@
 .login-logo-icon {
   width: 42px;
   height: 42px;
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   border-radius: var(--border-radius-md);
   display: flex;
   justify-content: center;
   align-items: center;
   color: #fff;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .login-logo-text {
@@ -116,19 +132,20 @@
 
 .form-input:focus {
   border-color: var(--accent-primary);
-  background: var(--bg-secondary);
   box-shadow: var(--shadow-glow);
+  background: var(--bg-primary);
 }
 
 .login-button {
   margin-top: 10px;
   padding: 14px;
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-primary-hover) 100%);
   color: #fff;
   font-weight: 700;
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: var(--transition-fast);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -136,7 +153,12 @@
 }
 
 .login-button:hover {
-  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+}
+
+.login-button:active {
+  transform: translateY(1px);
 }
 
 .login-error {
@@ -183,7 +205,7 @@
 .sidebar-logo {
   width: 34px;
   height: 34px;
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   border-radius: var(--border-radius-sm);
   display: flex;
   justify-content: center;
@@ -221,32 +243,22 @@
   gap: 16px;
   padding: 12px 16px;
   border-radius: var(--border-radius-md);
-  
-  /* FIXED THE WEIRD LOOK HERE: Use variables instead of fixed white/gray backgrounds */
-  background: transparent !important; 
-  color: var(--text-secondary) !important;
-  border: 1px solid transparent !important;
-  
+  color: var(--text-secondary);
   cursor: pointer;
   transition: var(--transition-fast);
   white-space: nowrap;
-  width: 100%;
-  text-align: left;
 }
 
 .menu-item:hover {
-  background: var(--bg-tertiary) !important;
-  color: var(--text-primary) !important;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
-/* Hard structural override for dynamic active states in layout tags */
-.sidebar-menu .menu-item.active,
-.sidebar .menu-item.active,
-div.menu-item.active {
-  background-color: rgba(255, 85, 0, 0.08) !important;
-  color: #FF5500 !important;
-  font-weight: 700 !important;
-  border: 1px solid rgba(255, 85, 0, 0.15) !important;
+.menu-item.active {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--accent-primary);
+  font-weight: 600;
+  border: 1px solid rgba(99, 102, 241, 0.15);
 }
 
 .menu-text {
@@ -271,16 +283,14 @@ div.menu-item.active {
   gap: 16px;
   padding: 12px 16px;
   border-radius: var(--border-radius-md);
-  background: transparent !important;
-  color: var(--text-muted) !important;
-  border: none !important;
+  color: var(--text-muted);
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .logout-button:hover {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: var(--accent-danger) !important;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
 }
 
 .sidebar.collapsed .logout-text {
@@ -366,7 +376,7 @@ div.menu-item.active {
 .search-input {
   width: 100%;
   padding: 8px 12px 8px 38px;
-  background: var(--bg-tertiary) !important;
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-md);
   font-size: 13px;
@@ -411,13 +421,13 @@ div.menu-item.active {
 .user-avatar {
   width: 38px;
   height: 38px;
-  background: var(--bg-tertiary);
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-info));
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
   font-weight: 700;
-  color: var(--accent-primary);
+  color: #fff;
   border: 2px solid var(--border-color);
 }
 
@@ -491,41 +501,10 @@ div.menu-item.active {
   flex-shrink: 0;
 }
 
-/* Force specific style alignments across statistics container tags */
-.stats-grid .stat-icon.blue, 
-.stat-icon.blue { 
-  background-color: rgba(255, 85, 0, 0.08) !important; 
-  color: #FF5500 !important; 
-}
-
-.stats-grid .stat-icon.purple, 
-.stat-icon.purple { 
-  background-color: rgba(16, 185, 129, 0.08) !important; 
-  color: #10b981 !important; 
-}
-
-.stats-grid .stat-icon.emerald, 
-.stat-icon.emerald { 
-  background-color: rgba(245, 158, 11, 0.08) !important; 
-  color: #f59e0b !important; 
-}
-
-/* Action Button Palette Rules */
-.btn-primary {
-  background: var(--accent-primary) !important;
-  color: #ffffff !important;
-  border: none !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 12px rgba(255, 85, 0, 0.15) !important;
-}
-
-.btn-primary:hover {
-  background: var(--accent-primary-hover) !important;
-}
-
-.search-input:focus, .custom-table tr:hover td {
-  border-color: rgba(255, 85, 0, 0.25) !important;
-}
+.stat-icon.blue { background: rgba(99, 102, 241, 0.1); color: var(--accent-primary); }
+.stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: var(--accent-secondary); }
+.stat-icon.emerald { background: rgba(16, 185, 129, 0.1); color: var(--accent-success); }
+.stat-icon.amber { background: rgba(245, 158, 11, 0.1); color: var(--accent-warning); }
 
 /* Table View Styling */
 .table-card {
@@ -568,12 +547,6 @@ div.menu-item.active {
   gap: 12px;
 }
 
-.table-actions select {
-  background-color: var(--bg-tertiary) !important;
-  border: 1px solid rgba(0, 0, 0, 0.03) !important;
-  color: var(--text-primary) !important;
-}
-
 .btn {
   padding: 10px 16px;
   border-radius: var(--border-radius-md);
@@ -584,6 +557,17 @@ div.menu-item.active {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background: var(--accent-primary-hover);
+  box-shadow: var(--shadow-glow);
 }
 
 .btn-secondary {
@@ -635,7 +619,7 @@ div.menu-item.active {
   font-weight: 700;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
-  background: rgba(0, 0, 0, 0.01);
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .custom-table td {
@@ -651,7 +635,7 @@ div.menu-item.active {
 }
 
 .custom-table tr:hover td {
-  background: rgba(255, 85, 0, 0.015);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .avatar-cell {
@@ -713,7 +697,7 @@ div.menu-item.active {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
@@ -765,7 +749,7 @@ div.menu-item.active {
 
 .modal-footer {
   padding: 20px 24px;
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.1);
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
@@ -836,18 +820,6 @@ div.menu-item.active {
   transform: scale(1.05);
 }
 
-img {
-      width: 34px;
-    height: 33px;
-  filter: drop-shadow(0 0 10px rgba(255, 102, 0, 0.2));
-}
-.logo-login {
-  margin-right: 20px;
-      width: 154px;
-    height: 33px;
-  filter: drop-shadow(0 0 10px rgba(255, 102, 0, 0.2));
-}
-
 .grid-card-badge {
   position: absolute;
   top: 12px;
@@ -875,97 +847,39 @@ img {
   flex: 1;
 }
 
-/* Figma Premium Pill Search Bar Overhaul */
-.search-bar {
+.grid-card-meta {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  position: relative;
-  border-color: var(--accent-primary) !important;
-  border: 2px black;
-  width: 320px; /* Clean desktop width sizing allocation */
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
 }
 
-.search-input {
-  width: 100%;
-  padding: 12px 50px 12px 20px !important; /* Extra padding on right for the icon button */
-  background-color: var(--bg-secondary) !important; /* Solid white background fill */
-  
-  /* ADDED THE PERMANENT BLACK BORDER HERE */
-  border: 2px solid #000000 !important; 
-  
-  border-radius: 9999px !important; /* Keeps the perfect pill shape */
-  font-size: 14px;
-  color: var(--text-primary);
-  transition: var(--transition-fast);
-}
-
-.search-input:focus {
-  border-color: var(--accent-primary) !important;
-  box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.1) !important;
-}
-
-/* Beautiful right-aligned circular search action button */
-.search-icon-btn {
-  position: absolute;
-  right: 4px; /* Perfectly aligned to sit right inside the curved white border */
-  width: 36px;
-  height: 36px;
-  background-color: var(--accent-primary) !important; /* Pure high-energy brand orange */
-  border-radius: 50% !important; /* Perfect circle container */
+.grid-card-actions {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: transform 0.15s ease;
+  gap: 8px;
 }
 
-.search-icon-btn:hover {
-  transform: scale(1.05); /* Interactive micro-interaction bounce */
-  background-color: var(--accent-primary-hover) !important;
-}
-
-
-/* GLOBAL THEME SURFACES FORCE INJECTION */
-
-/* Force the main app body canvas area to stay peach */
-.app-container,
-.main-wrapper,
-.content-area,
-main {
-  background-color: var(--bg-primary) !important;
-}
-
-/* Force all panel content containers and cards to remain crisp solid white */
-.stat-card,
-.table-card,
-.modal-content,
-.header,
-.sidebar {
-  background-color: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-}
-
-/* Force all inner subheading structures to adopt black color values */
-.table-title,
-.stat-value,
-.header-title,
-h1, h2, h3 {
-  color: var(--text-primary) !important;
-}
-
-/* Force inner descriptive items to adopt readable secondary slate weights */
-.table-subtitle,
-.stat-title,
-.avatar-subtext {
-  color: var(--text-secondary) !important;
-}
-
-/* Force all global system filter selects and search text areas to utilize your sandy inputs canvas */
-.table-actions input,
-.table-actions select,
-.modal-body input,
-.modal-body select {
-  background-color: var(--bg-tertiary) !important;
-  border: 1px solid var(--border-color) !important;
-  color: var(--text-primary) !important;
+/* Responsive styles */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    height: 100vh;
+    left: -260px;
+  }
+  .sidebar.mobile-open {
+    left: 0;
+    width: var(--sidebar-width);
+  }
+  .header {
+    padding: 0 16px;
+  }
+  .content-area {
+    padding: 20px 16px;
+  }
+  .search-bar {
+    display: none;
+  }
 }
