@@ -9,27 +9,32 @@ import Footer from './components/Footer';
 import DashboardView from './views/DashboardView';
 import UsersView from './views/UsersView';
 import CategoryView from './views/CategoryView';
-import SubcategoryView from './views/SubcategoryView';
-import BusinessView from './views/BusinessView';
-import BannersView from './views/BannersView';
-import EventBannersView from './views/EventBannersView';
-import ExcelUploadView from './views/ExcelUploadView';
+import ProductsView from './views/ProductsView';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem('isAdminLoggedIn') === 'true';
+  });
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('adminUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
+    localStorage.setItem('isAdminLoggedIn', 'true');
+    localStorage.setItem('adminUser', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
       setIsLoggedIn(false);
       setUser(null);
+      localStorage.removeItem('isAdminLoggedIn');
+      localStorage.removeItem('adminUser');
       setActiveTab('dashboard');
     }
   };
@@ -39,11 +44,7 @@ export default function App() {
       case 'dashboard': return <DashboardView />;
       case 'users': return <UsersView />;
       case 'category': return <CategoryView />;
-      case 'subcategory': return <SubcategoryView />;
-      case 'business': return <BusinessView />;
-      case 'banners': return <BannersView />;
-      case 'eventBanners': return <EventBannersView />;
-      case 'excelUpload': return <ExcelUploadView />;
+      case 'product': return <ProductsView />;
       default: return <DashboardView />;
     }
   };

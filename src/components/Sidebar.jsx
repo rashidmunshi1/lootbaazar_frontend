@@ -6,11 +6,7 @@ import {
   LayoutDashboard,
   Users, 
   Grid, 
-  Layers, 
-  Building2, 
-  Image as ImageIcon, 
-  CalendarRange,
-  FileSpreadsheet,
+  ShoppingBag, 
   LogOut
 } from 'lucide-react';
 
@@ -26,11 +22,7 @@ export default function Sidebar({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'category', label: 'Categories', icon: Grid },
-    { id: 'business', label: 'Businesses', icon: Building2 },
-    { id: 'banners', label: 'Banners', icon: ImageIcon },
-    { id: 'subcategory', label: 'Sub Categories', icon: Layers },
-    { id: 'eventBanners', label: 'Event Banners', icon: CalendarRange },
-    { id: 'excelUpload', label: 'Excel Upload', icon: FileSpreadsheet },
+    { id: 'product', label: 'Products', icon: ShoppingBag },
   ];
 
   return (

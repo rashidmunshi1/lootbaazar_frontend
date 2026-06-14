@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import logo from "../assets/logo.png"
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
+const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
+
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,15 +30,29 @@ export default function Login({ onLoginSuccess }) {
 
     setIsLoading(true);
 
-    // Mock network request delay
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email === 'admin@lootbaazar.com' && password === 'admin123') {
-        onLoginSuccess({ email, name: 'LootBaazar Admin', role: 'Super Admin' });
-      } else {
-        setError('Invalid email or password. Hint: admin@lootbaazar.com / admin123');
-      }
-    }, 1200);
+    fetch(`${API_BASE_URL}/admin/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY
+      },
+      body: JSON.stringify({ email, password })
+    })
+      .then(res => {
+        setIsLoading(false);
+        if (!res.ok) {
+          return res.json().then(data => {
+            throw new Error(data.error || data.message || 'Invalid email or password');
+          });
+        }
+        return res.json();
+      })
+      .then(data => {
+        onLoginSuccess(data.user);
+      })
+      .catch(err => {
+        setError(err.message);
+      });
   };
 
   const handleQuickFill = () => {

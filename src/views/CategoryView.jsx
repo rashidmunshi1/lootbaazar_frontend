@@ -1,54 +1,80 @@
-import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Tag, CheckCircle, XCircle, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Edit2, Trash2, Tag, Hash, X } from 'lucide-react';
 
-const INITIAL_CATEGORIES = [
-  { id: 1, name: 'Electronics', desc: 'Gadgets, phones, laptops, and smart tech items.', status: 'Active', subCount: 8, image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=100&auto=format&fit=crop&q=60' },
-  { id: 2, name: 'Fashion & Apparel', desc: 'Men, women, and kids apparel, shoes, and accessories.', status: 'Active', subCount: 12, image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=100&auto=format&fit=crop&q=60' },
-  { id: 3, name: 'Home & Living', desc: 'Furniture, kitchenware, home decor, and tools.', status: 'Active', subCount: 6, image: 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=100&auto=format&fit=crop&q=60' },
-  { id: 4, name: 'Sports & Outdoors', desc: 'Fitness equipment, sportswear, and camping gear.', status: 'Active', subCount: 5, image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100&auto=format&fit=crop&q=60' },
-  { id: 5, name: 'Beauty & Health', desc: 'Skincare, makeup, vitamins, and wellness items.', status: 'Disabled', subCount: 4, image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100&auto=format&fit=crop&q=60' },
-];
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
+const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
 
 export default function CategoryView() {
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Form State
-  const [formData, setFormData] = useState({ name: '', desc: '', status: 'Active', image: '' });
+  const [formData, setFormData] = useState({ name: '', order: 0 });
   const [formError, setFormError] = useState('');
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/categories`, {
+        headers: {
+          'x-api-key': API_KEY
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      const data = await res.json();
+      setCategories(data);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load categories from the database.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const handleOpenAddModal = () => {
     setCurrentCategory(null);
-    setFormData({ name: '', desc: '', status: 'Active', image: '' });
+    setFormData({ name: '', order: categories.length ? Math.max(...categories.map(c => c.order || 0)) + 1 : 1 });
     setFormError('');
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (cat) => {
     setCurrentCategory(cat);
-    setFormData({ name: cat.name, desc: cat.desc, status: cat.status, image: cat.image });
+    setFormData({ name: cat.name, order: cat.order || 0 });
     setFormError('');
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this category? This might affect related subcategories.')) {
-      setCategories(categories.filter(c => c.id !== id));
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/categories/${id}/delete`, {
+          method: 'DELETE',
+          headers: {
+            'x-api-key': API_KEY
+          }
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || errData.message || 'Failed to delete category');
+        }
+        fetchCategories();
+      } catch (err) {
+        alert(err.message);
+      }
     }
   };
 
-  const handleToggleStatus = (id) => {
-    setCategories(categories.map(c => {
-      if (c.id === id) {
-        return { ...c, status: c.status === 'Active' ? 'Disabled' : 'Active' };
-      }
-      return c;
-    }));
-  };
-
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setFormError('');
 
@@ -57,39 +83,55 @@ export default function CategoryView() {
       return;
     }
 
-    const placeholderImg = 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=100&auto=format&fit=crop&q=60';
-    const finalImg = formData.image.trim() || placeholderImg;
+    const payload = {
+      name: formData.name,
+      order: Number(formData.order) || 0
+    };
 
-    if (currentCategory) {
-      // Edit
-      setCategories(categories.map(c => {
-        if (c.id === currentCategory.id) {
-          return { ...c, ...formData, image: finalImg };
+    try {
+      if (currentCategory) {
+        // Edit API call
+        const res = await fetch(`${API_BASE_URL}/categories/${currentCategory._id}/update`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || errData.message || 'Failed to update category');
         }
-        return c;
-      }));
-    } else {
-      // Add
-      const newCat = {
-        id: categories.length ? Math.max(...categories.map(c => c.id)) + 1 : 1,
-        ...formData,
-        image: finalImg,
-        subCount: 0
-      };
-      setCategories([...categories, newCat]);
-    }
+      } else {
+        // Add API call
+        const res = await fetch(`${API_BASE_URL}/categories/store`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || errData.message || 'Failed to add category');
+        }
+      }
 
-    setIsModalOpen(false);
+      setIsModalOpen(false);
+      fetchCategories();
+    } catch (err) {
+      setFormError(err.message);
+    }
   };
 
   const filteredCategories = categories.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.desc.toLowerCase().includes(search.toLowerCase())
+    c.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalCategories = categories.length;
-  const activeCategories = categories.filter(c => c.status === 'Active').length;
-  const disabledCategories = categories.filter(c => c.status === 'Disabled').length;
+  const maxOrder = categories.length ? Math.max(...categories.map(c => c.order || 0)) : 0;
 
   return (
     <div className="animate-fade">
@@ -107,31 +149,27 @@ export default function CategoryView() {
 
         <div className="stat-card">
           <div>
-            <div className="stat-title">Active Categories</div>
-            <div className="stat-value">{activeCategories}</div>
+            <div className="stat-title">Highest Order</div>
+            <div className="stat-value">{maxOrder}</div>
           </div>
           <div className="stat-icon emerald">
-            <CheckCircle size={24} />
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div>
-            <div className="stat-title">Disabled Categories</div>
-            <div className="stat-value">{disabledCategories}</div>
-          </div>
-          <div className="stat-icon amber">
-            <XCircle size={24} />
+            <Hash size={24} />
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="login-error" style={{ marginBottom: '16px', padding: '12px' }}>
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Categories Table Card */}
       <div className="table-card">
         <div className="table-header">
           <div className="table-title-container">
             <h2 className="table-title">Product Categories</h2>
-            <span className="table-subtitle">Structure your store inventory by defining major category collections.</span>
+            <span className="table-subtitle">Structure your store inventory by defining major category collections and ordering them.</span>
           </div>
 
           <div className="table-actions">
@@ -155,86 +193,63 @@ export default function CategoryView() {
         </div>
 
         <div className="table-container">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Thumbnail & Name</th>
-                <th>Description</th>
-                <th>Subcategories</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCategories.length === 0 ? (
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              Loading categories...
+            </div>
+          ) : (
+            <table className="custom-table">
+              <thead>
                 <tr>
-                  <td colSpan="5" style={{ padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                    No categories found.
-                  </td>
+                  <th>Category ID</th>
+                  <th>Category Name</th>
+                  <th>Category Order</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ) : (
-                filteredCategories.map((cat) => (
-                  <tr key={cat.id}>
-                    <td>
-                      <div className="avatar-cell">
-                        <img 
-                          src={cat.image} 
-                          alt={cat.name} 
-                          className="avatar-img"
-                        />
-                        <div className="avatar-name-info">
-                          <span style={{ fontWeight: 600 }}>{cat.name}</span>
-                          <span className="avatar-subtext">ID: #{cat.id}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ 
-                        maxWidth: '280px', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis', 
-                        whiteSpace: 'nowrap',
-                        color: 'var(--text-secondary)'
-                      }} title={cat.desc}>
-                        {cat.desc || 'No description provided.'}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge badge-info">{cat.subCount} items</span>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleToggleStatus(cat.id)}
-                        className={`badge ${cat.status === 'Active' ? 'badge-success' : 'badge-danger'}`}
-                        style={{ cursor: 'pointer', border: 'none' }}
-                        title="Click to toggle status"
-                      >
-                        {cat.status}
-                      </button>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button 
-                          className="btn btn-secondary btn-icon-only" 
-                          onClick={() => handleOpenEditModal(cat)}
-                          title="Edit Category"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button 
-                          className="btn btn-danger btn-icon-only" 
-                          onClick={() => handleDelete(cat.id)}
-                          title="Delete Category"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {filteredCategories.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                      No categories found.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredCategories.map((cat) => (
+                    <tr key={cat._id}>
+                      <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+                        #{cat._id}
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                      </td>
+                      <td>
+                        <span className="badge badge-info" style={{ fontWeight: 600 }}>{cat.order || 0}</span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button 
+                            className="btn btn-secondary btn-icon-only" 
+                            onClick={() => handleOpenEditModal(cat)}
+                            title="Edit Category"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-icon-only" 
+                            onClick={() => handleDelete(cat._id)}
+                            title="Delete Category"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -271,42 +286,16 @@ export default function CategoryView() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="cat-desc">Description</label>
-                  <textarea
-                    id="cat-desc"
-                    className="form-input"
-                    placeholder="Provide a brief description..."
-                    style={{ paddingLeft: '14px', height: '90px', resize: 'vertical' }}
-                    value={formData.desc}
-                    onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="cat-image">Image URL (Optional)</label>
+                  <label className="form-label" htmlFor="cat-order">Category Order</label>
                   <input
-                    id="cat-image"
-                    type="text"
+                    id="cat-order"
+                    type="number"
                     className="form-input"
-                    placeholder="https://unsplash.com/..."
+                    placeholder="e.g. 1"
                     style={{ paddingLeft: '14px' }}
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    value={formData.order}
+                    onChange={(e) => setFormData({ ...formData, order: e.target.value })}
                   />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="cat-status">Status</label>
-                  <select
-                    id="cat-status"
-                    className="form-input"
-                    style={{ paddingLeft: '14px', background: 'var(--bg-tertiary)' }}
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Disabled">Disabled</option>
-                  </select>
                 </div>
               </div>
 
