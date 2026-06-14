@@ -1,24 +1,60 @@
-import React, { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Shield, UserCheck, UserX, X, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Edit2, Trash2, Shield, UserCheck, UserX, X, AlertCircle, Loader2 } from 'lucide-react';
 
-const INITIAL_USERS = [
-  { id: 1, name: 'Rashid Munshi', email: 'rashid@lootbaazar.com', role: 'Super Admin', status: 'Active', joined: '2026-01-15' },
-  { id: 2, name: 'Jane Doe', email: 'jane@gmail.com', role: 'Moderator', status: 'Active', joined: '2026-03-22' },
-  { id: 3, name: 'John Smith', email: 'john.smith@yahoo.com', role: 'Customer', status: 'Active', joined: '2026-04-05' },
-  { id: 4, name: 'Robert Johnson', email: 'robert@outlook.com', role: 'Business Owner', status: 'Suspended', joined: '2026-02-18' },
-  { id: 5, name: 'Emily Davis', email: 'emily.d@gmail.com', role: 'Customer', status: 'Active', joined: '2026-05-12' },
-];
+// Explicitly pointing to your updated port 3001
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api/frontend';
+const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
 
-export default function UsersView() {
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [search, setSearch] = useState('');
+export default function UsersView({ globalSearch = '' }) {
+  const [users, setUsers] = useState([]);
+  const [localSearch, setLocalSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // null for add, object for edit
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Form states
   const [formData, setFormData] = useState({ name: '', email: '', role: 'Customer', status: 'Active' });
   const [formError, setFormError] = useState('');
+
+  const activeSearchQuery = globalSearch || localSearch;
+
+  // Dual-header configuration to safely bypass his live middleware validation check
+  const getRequestHeaders = (contentType = false) => {
+    const headers = {
+      'x-api-key': API_KEY,
+      'apikey': API_KEY
+    };
+    if (contentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return headers;
+  };
+
+  // FETCH USERS - Connected directly to Rashid's live '/user/index' endpoint
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/user/index`, {
+        headers: getRequestHeaders()
+      });
+      if (!res.ok) throw new Error('Failed to retrieve system user accounts');
+      const data = await res.json();
+      setUsers(data || []);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError('Could not synchronize user directory data from backend registry.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleOpenAddModal = () => {
     setCurrentUser(null);
@@ -34,61 +70,119 @@ export default function UsersView() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(u => u.id !== id));
+  // DELETE USER - Connected directly to Rashid's live '/profile/:id/delete' endpoint
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to permanently delete this user account?')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/profile/${id}/delete`, {
+          method: 'DELETE',
+          headers: getRequestHeaders()
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || errData.message || 'Failed to drop user record');
+        }
+        fetchUsers();
+      } catch (err) {
+        alert(err.message);
+      }
     }
   };
 
-  const handleToggleStatus = (id) => {
-    setUsers(users.map(u => {
-      if (u.id === id) {
-        return { ...u, status: u.status === 'Active' ? 'Suspended' : 'Active' };
-      }
-      return u;
-    }));
+  // TOGGLE STATUS - Connected directly to Rashid's live '/profile/:id/update' endpoint
+  const handleToggleStatus = async (user) => {
+    const nextStatus = user.status === 'Active' ? 'Suspended' : 'Active';
+    const userId = user._id || user.id;
+
+    const payload = {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: nextStatus
+    };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/profile/${userId}/update`, {
+        method: 'PUT',
+        headers: getRequestHeaders(true),
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Failed to modify status permission flags.');
+      fetchUsers();
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
-  const handleSave = (e) => {
+  // SAVE / REGISTER - Connected directly to Rashid's live '/register' and '/profile/:id/update' endpoints
+  const handleSave = async (e) => {
     e.preventDefault();
     setFormError('');
 
     if (!formData.name.trim() || !formData.email.trim()) {
-      setFormError('Name and email are required.');
+      setFormError('Name and email parameters are mandatory.');
       return;
     }
 
-    if (currentUser) {
-      // Edit mode
-      setUsers(users.map(u => {
-        if (u.id === currentUser.id) {
-          return { ...u, ...formData };
-        }
-        return u;
-      }));
-    } else {
-      // Add mode
-      const newUser = {
-        id: users.length ? Math.max(...users.map(u => u.id)) + 1 : 1,
-        ...formData,
-        joined: new Date().toISOString().split('T')[0]
-      };
-      setUsers([...users, newUser]);
-    }
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+      status: formData.status
+    };
 
-    setIsModalOpen(false);
+    try {
+      if (currentUser) {
+        // Edit Mode via '/profile/:id/update'
+        const userId = currentUser._id || currentUser.id;
+        const res = await fetch(`${API_BASE_URL}/profile/${userId}/update`, {
+          method: 'PUT',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || errData.message || 'Failed to update user config.');
+        }
+      } else {
+        // Register Mode via '/register'
+        const res = await fetch(`${API_BASE_URL}/register`, {
+          method: 'POST',
+          headers: getRequestHeaders(true),
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || errData.message || 'Failed to register account schema.');
+        }
+      }
+
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      setFormError(err.message);
+    }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) || 
-                          user.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === 'All' || user.role === roleFilter;
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = (u.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+                          (u.email?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase());
+    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
   const totalUsers = users.length;
   const activeUsers = users.filter(u => u.status === 'Active').length;
   const suspendedUsers = users.filter(u => u.status === 'Suspended').length;
+
+  if (loading && users.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', color: 'var(--text-secondary)' }}>
+        <Loader2 className="animate-spin" size={32} style={{ color: 'var(--accent-primary)', marginBottom: '12px' }} />
+        <span>Syncing system user directories...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade">
@@ -141,8 +235,8 @@ export default function UsersView() {
                 placeholder="Search name, email..."
                 className="search-input"
                 style={{ paddingLeft: '38px', width: '220px' }}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
               />
             </div>
 
@@ -167,6 +261,7 @@ export default function UsersView() {
         </div>
 
         <div className="table-container">
+          {error && <div style={{ color: 'var(--accent-danger)', padding: '12px 24px' }}>⚠️ {error}</div>}
           <table className="custom-table">
             <thead>
               <tr>
@@ -181,63 +276,68 @@ export default function UsersView() {
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{ padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                    No users found matching filters.
+                    No registered user accounts found matching query.
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <div className="avatar-cell">
-                        <div className="avatar-circle">
-                          {user.name.split(' ').map(n => n[0]).join('')}
+                filteredUsers.map((user) => {
+                  const userId = user._id || user.id;
+                  return (
+                    <tr key={userId}>
+                      <td>
+                        <div className="avatar-cell">
+                          <div className="avatar-circle">
+                            {user.name ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                          </div>
+                          <div className="avatar-name-info">
+                            <span style={{ fontWeight: 600 }}>{user.name}</span>
+                            <span className="avatar-subtext">{user.email}</span>
+                          </div>
                         </div>
-                        <div className="avatar-name-info">
-                          <span style={{ fontWeight: 600 }}>{user.name}</span>
-                          <span className="avatar-subtext">{user.email}</span>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          user.role === 'Super Admin' ? 'badge-danger' :
+                          user.role === 'Moderator' ? 'badge-warning' :
+                          user.role === 'Business Owner' ? 'badge-info' : 'badge-muted'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => handleToggleStatus(user)}
+                          className={`badge ${user.status === 'Active' ? 'badge-success' : 'badge-danger'}`}
+                          style={{ cursor: 'pointer', border: 'none' }}
+                          title="Click to toggle status"
+                        >
+                          {user.status}
+                        </button>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>
+                        {user.joined ? user.joined.split('T')[0] : 'N/A'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button 
+                            className="btn btn-secondary btn-icon-only" 
+                            onClick={() => handleOpenEditModal(user)}
+                            title="Edit User"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-icon-only" 
+                            onClick={() => handleDelete(userId)}
+                            title="Delete User"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        user.role === 'Super Admin' ? 'badge-danger' :
-                        user.role === 'Moderator' ? 'badge-warning' :
-                        user.role === 'Business Owner' ? 'badge-info' : 'badge-muted'
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td>
-                      <button 
-                        onClick={() => handleToggleStatus(user.id)}
-                        className={`badge ${user.status === 'Active' ? 'badge-success' : 'badge-danger'}`}
-                        style={{ cursor: 'pointer', border: 'none' }}
-                        title="Click to toggle status"
-                      >
-                        {user.status}
-                      </button>
-                    </td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{user.joined}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button 
-                          className="btn btn-secondary btn-icon-only" 
-                          onClick={() => handleOpenEditModal(user)}
-                          title="Edit User"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button 
-                          className="btn btn-danger btn-icon-only" 
-                          onClick={() => handleDelete(user.id)}
-                          title="Delete User"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
