@@ -1,9 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit2, Trash2, Shield, UserCheck, UserX, X, AlertCircle, Loader2 } from 'lucide-react';
 
 // Explicitly pointing to your updated port 3001
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api/frontend';
 const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
+
+// Dual-header configuration to safely bypass his live middleware validation check
+const getRequestHeaders = (contentType = false) => {
+  const headers = {
+    'x-api-key': API_KEY,
+    'apikey': API_KEY
+  };
+  if (contentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
+};
 
 export default function UsersView({ globalSearch = '' }) {
   const [users, setUsers] = useState([]);
@@ -21,20 +33,8 @@ export default function UsersView({ globalSearch = '' }) {
 
   const activeSearchQuery = globalSearch || localSearch;
 
-  // Dual-header configuration to safely bypass his live middleware validation check
-  const getRequestHeaders = (contentType = false) => {
-    const headers = {
-      'x-api-key': API_KEY,
-      'apikey': API_KEY
-    };
-    if (contentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-    return headers;
-  };
-
   // FETCH USERS - Connected directly to Rashid's live '/user/index' endpoint
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/user/index`, {
@@ -50,11 +50,11 @@ export default function UsersView({ globalSearch = '' }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleOpenAddModal = () => {
     setCurrentUser(null);
