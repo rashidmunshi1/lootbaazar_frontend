@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X, ShoppingBag, AlertCircle, Sparkles, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, ShoppingBag, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
 const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
@@ -232,7 +232,7 @@ export default function ProductsView() {
 
   const totalProducts = products.length;
   const outOfStock = products.filter(p => !p.stock || p.stock <= 0).length;
-  const totalStockVal = products.reduce((acc, p) => acc + ((p.price || 0) * (p.stock || 0)), 0);
+  // const totalStockVal = products.reduce((acc, p) => acc + ((p.price || 0) * (p.stock || 0)), 0);
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const activeProducts = products.filter(p => p.createdAt && new Date(p.createdAt) > twentyFourHoursAgo).length;
