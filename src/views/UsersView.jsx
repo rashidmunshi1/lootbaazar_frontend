@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Edit2, Trash2, Shield, UserCheck, UserX, X, AlertCircle, Loader2 } from 'lucide-react';
 
-// Explicitly pointing to your updated port 3001
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api/frontend';
+// Explicitly pointing to your active backend port 3000
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
 const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
 
 // Dual-header configuration to safely bypass his live middleware validation check
@@ -20,7 +20,6 @@ const getRequestHeaders = (contentType = false) => {
 export default function UsersView({ globalSearch = '' }) {
   const [users, setUsers] = useState([]);
   const [localSearch, setLocalSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -28,7 +27,7 @@ export default function UsersView({ globalSearch = '' }) {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Form states
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'Customer', status: 'Active' });
+  const [formData, setFormData] = useState({ name: '', email: '', status: 'Active' });
   const [formError, setFormError] = useState('');
 
   const activeSearchQuery = globalSearch || localSearch;
@@ -58,14 +57,14 @@ export default function UsersView({ globalSearch = '' }) {
 
   const handleOpenAddModal = () => {
     setCurrentUser(null);
-    setFormData({ name: '', email: '', role: 'Customer', status: 'Active' });
+    setFormData({ name: '', email: '', status: 'Active' });
     setFormError('');
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (user) => {
     setCurrentUser(user);
-    setFormData({ name: user.name, email: user.email, role: user.role, status: user.status });
+    setFormData({ name: user.name, email: user.email, status: user.status });
     setFormError('');
     setIsModalOpen(true);
   };
@@ -97,7 +96,6 @@ export default function UsersView({ globalSearch = '' }) {
     const payload = {
       name: user.name,
       email: user.email,
-      role: user.role,
       status: nextStatus
     };
 
@@ -127,7 +125,6 @@ export default function UsersView({ globalSearch = '' }) {
     const payload = {
       name: formData.name,
       email: formData.email,
-      role: formData.role,
       status: formData.status
     };
 
@@ -167,8 +164,7 @@ export default function UsersView({ globalSearch = '' }) {
   const filteredUsers = users.filter(u => {
     const matchesSearch = (u.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
                           (u.email?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
+    return matchesSearch;
   });
 
   const totalUsers = users.length;
@@ -240,18 +236,7 @@ export default function UsersView({ globalSearch = '' }) {
               />
             </div>
 
-            <select
-              className="search-input"
-              style={{ width: '140px', paddingLeft: '12px', paddingRight: '12px' }}
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <option value="All">All Roles</option>
-              <option value="Super Admin">Super Admin</option>
-              <option value="Moderator">Moderator</option>
-              <option value="Business Owner">Business Owner</option>
-              <option value="Customer">Customer</option>
-            </select>
+
 
             <button className="btn btn-primary" onClick={handleOpenAddModal}>
               <Plus size={16} />
@@ -266,7 +251,6 @@ export default function UsersView({ globalSearch = '' }) {
             <thead>
               <tr>
                 <th>User Profile</th>
-                <th>Role</th>
                 <th>Status</th>
                 <th>Joined Date</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -275,7 +259,7 @@ export default function UsersView({ globalSearch = '' }) {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  <td colSpan="4" style={{ padding: '40px', color: 'var(--text-muted)', textAlign: 'center' }}>
                     No registered user accounts found matching query.
                   </td>
                 </tr>
@@ -295,15 +279,7 @@ export default function UsersView({ globalSearch = '' }) {
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <span className={`badge ${
-                          user.role === 'Super Admin' ? 'badge-danger' :
-                          user.role === 'Moderator' ? 'badge-warning' :
-                          user.role === 'Business Owner' ? 'badge-info' : 'badge-muted'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
+
                       <td>
                         <button 
                           onClick={() => handleToggleStatus(user)}
@@ -315,7 +291,7 @@ export default function UsersView({ globalSearch = '' }) {
                         </button>
                       </td>
                       <td style={{ color: 'var(--text-secondary)' }}>
-                        {user.joined ? user.joined.split('T')[0] : 'N/A'}
+                        {user.createdAt ? user.createdAt.split('T')[0] : 'N/A'}
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
@@ -390,21 +366,7 @@ export default function UsersView({ globalSearch = '' }) {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="user-role">Account Role</label>
-                  <select
-                    id="user-role"
-                    className="form-input"
-                    style={{ paddingLeft: '14px' }}
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  >
-                    <option value="Super Admin">Super Admin</option>
-                    <option value="Moderator">Moderator</option>
-                    <option value="Business Owner">Business Owner</option>
-                    <option value="Customer">Customer</option>
-                  </select>
-                </div>
+
 
                 <div className="form-group">
                   <label className="form-label" htmlFor="user-status">Account Status</label>

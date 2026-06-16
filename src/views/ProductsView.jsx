@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X, ShoppingBag, AlertCircle, Sparkles } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, ShoppingBag, AlertCircle, Sparkles, CheckCircle, Clock } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
 const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
+
+const getImageUrl = (image) => {
+  if (!image) return '';
+  const url = typeof image === 'object' ? (image.url || '') : (image || '');
+  if (typeof url !== 'string') return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (url.startsWith('uploads/')) {
+    return `http://localhost:3000/${url}`;
+  }
+  return `http://localhost:3000/uploads/${url}`;
+};
 
 export default function ProductsView() {
   const [products, setProducts] = useState([]);
@@ -50,7 +63,7 @@ export default function ProductsView() {
       setUsers(userData);
 
       // Fetch products (fetch all by setting a high limit)
-      const prodRes = await fetch(`${API_BASE_URL}/products?limit=100`, {
+      const prodRes = await fetch(`${API_BASE_URL}/products?limit=1000&all=true`, {
         headers: { 'x-api-key': API_KEY }
       });
       const prodData = await prodRes.json();
@@ -221,6 +234,10 @@ export default function ProductsView() {
   const outOfStock = products.filter(p => !p.stock || p.stock <= 0).length;
   const totalStockVal = products.reduce((acc, p) => acc + ((p.price || 0) * (p.stock || 0)), 0);
 
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const activeProducts = products.filter(p => p.createdAt && new Date(p.createdAt) > twentyFourHoursAgo).length;
+  const expiredProducts = products.filter(p => !p.createdAt || new Date(p.createdAt) <= twentyFourHoursAgo).length;
+
   return (
     <div className="animate-fade">
       {/* Metrics */}
@@ -235,6 +252,8 @@ export default function ProductsView() {
           </div>
         </div>
 
+        {/* Commented out Stock Value as requested */}
+        {/* 
         <div className="stat-card">
           <div>
             <div className="stat-title">Stock Value</div>
@@ -242,6 +261,27 @@ export default function ProductsView() {
           </div>
           <div className="stat-icon emerald">
             <Sparkles size={24} />
+          </div>
+        </div>
+        */}
+
+        <div className="stat-card">
+          <div>
+            <div className="stat-title">Active Products</div>
+            <div className="stat-value">{activeProducts}</div>
+          </div>
+          <div className="stat-icon emerald">
+            <CheckCircle size={24} />
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div>
+            <div className="stat-title">Expired Products</div>
+            <div className="stat-value">{expiredProducts}</div>
+          </div>
+          <div className="stat-icon blue">
+            <Clock size={24} />
           </div>
         </div>
 
@@ -333,14 +373,14 @@ export default function ProductsView() {
                         <div className="avatar-cell">
                           {prod.images && prod.images.length > 0 ? (
                             <img 
-                              src={`http://localhost:3000/uploads/${prod.images[0]}`}
+                              src={getImageUrl(prod.images[0])}
                               alt={prod.title}
                               className="avatar-img"
                               style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
                               onError={(e) => {
-                                // Fallback if image path is not direct filename but relative upload path
-                                if (!e.target.src.includes('/uploads/uploads/')) {
-                                  e.target.src = prod.images[0].startsWith('http') ? prod.images[0] : `http://localhost:3000/${prod.images[0]}`;
+                                const fallback = typeof prod.images[0] === 'object' ? prod.images[0].url : prod.images[0];
+                                if (typeof fallback === 'string' && !e.target.src.includes('/uploads/uploads/')) {
+                                  e.target.src = fallback.startsWith('http') ? fallback : `http://localhost:3000/${fallback}`;
                                 }
                               }}
                             />
@@ -566,12 +606,13 @@ export default function ProductsView() {
                       {currentProduct.images.map((img, i) => (
                         <img 
                           key={i}
-                          src={img.startsWith('http') ? img : `http://localhost:3000/uploads/${img}`} 
+                          src={getImageUrl(img)} 
                           alt="" 
                           style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} 
                           onError={(e) => {
-                            if (!e.target.src.includes('/uploads/uploads/')) {
-                              e.target.src = `http://localhost:3000/${img}`;
+                            const fallback = typeof img === 'object' ? img.url : img;
+                            if (typeof fallback === 'string' && !e.target.src.includes('/uploads/uploads/')) {
+                              e.target.src = fallback.startsWith('http') ? fallback : `http://localhost:3000/${fallback}`;
                             }
                           }}
                         />

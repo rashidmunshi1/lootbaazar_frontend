@@ -1,82 +1,135 @@
-import React from 'react';
-import { TrendingUp, ShoppingBag, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Tag, ShoppingBag } from 'lucide-react';
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
+const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
+
+const getRequestHeaders = () => {
+  return {
+    'x-api-key': API_KEY,
+    'apikey': API_KEY
+  };
+};
 
 export default function DashboardView() {
+  const [stats, setStats] = useState({
+    users: 0,
+    categories: 0,
+    products: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        
+        // 1. Fetch Users
+        const userRes = await fetch(`${API_BASE_URL}/user/index`, {
+          headers: getRequestHeaders()
+        });
+        let totalUsers = 0;
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          totalUsers = Array.isArray(userData) ? userData.length : 0;
+        }
+
+        // 2. Fetch Categories
+        const catRes = await fetch(`${API_BASE_URL}/categories`, {
+          headers: getRequestHeaders()
+        });
+        let totalCategories = 0;
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          totalCategories = Array.isArray(catData) ? catData.length : 0;
+        }
+
+        // 3. Fetch Products
+        const prodRes = await fetch(`${API_BASE_URL}/products?limit=1&all=true`, {
+          headers: getRequestHeaders()
+        });
+        let totalProducts = 0;
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          totalProducts = prodData.totalProducts !== undefined 
+            ? prodData.totalProducts 
+            : (Array.isArray(prodData.products) ? prodData.products.length : 0);
+        }
+
+        setStats({
+          users: totalUsers,
+          categories: totalCategories,
+          products: totalProducts
+        });
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+        setError('Failed to load dashboard statistics.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="animate-fade">
+      {error && (
+        <div className="login-error" style={{ marginBottom: '16px', padding: '12px' }}>
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Overview Statistics Row */}
       <div className="stats-grid">
         <div className="stat-card">
           <div>
-            <div className="stat-title">Platform Gross Volume</div>
-            <div className="stat-value">₹14,84,200</div>
+            <div className="stat-title">Total Users</div>
+            <div className="stat-value">
+              {loading ? (
+                <span className="animate-pulse" style={{ fontSize: '18px', color: 'var(--text-muted)' }}>Loading...</span>
+              ) : (
+                stats.users
+              )}
+            </div>
           </div>
           <div className="stat-icon blue">
-            <TrendingUp size={24} />
+            <Users size={24} />
           </div>
         </div>
 
         <div className="stat-card">
           <div>
-            <div className="stat-title">Active Orders Today</div>
-            <div className="stat-value">342</div>
+            <div className="stat-title">Total Categories</div>
+            <div className="stat-value">
+              {loading ? (
+                <span className="animate-pulse" style={{ fontSize: '18px', color: 'var(--text-muted)' }}>Loading...</span>
+              ) : (
+                stats.categories
+              )}
+            </div>
           </div>
           <div className="stat-icon emerald">
-            <ShoppingBag size={24} />
+            <Tag size={24} />
           </div>
         </div>
 
         <div className="stat-card">
           <div>
-            <div className="stat-title">Total Active Listings</div>
-            <div className="stat-value">1,829</div>
+            <div className="stat-title">Total Products</div>
+            <div className="stat-value">
+              {loading ? (
+                <span className="animate-pulse" style={{ fontSize: '18px', color: 'var(--text-muted)' }}>Loading...</span>
+              ) : (
+                stats.products
+              )}
+            </div>
           </div>
           <div className="stat-icon purple">
-            <Globe size={24} />
+            <ShoppingBag size={24} />
           </div>
-        </div>
-      </div>
-
-      {/* Performance Analytics Table Block */}
-      <div className="table-card" style={{ padding: '24px' }}>
-        <h3 className="table-title">Recent Transactions & Activity Log</h3>
-        <p className="table-subtitle" style={{ marginBottom: '20px' }}>Real-time overview of platform sales and merchant activations across regions.</p>
-        
-        <div className="table-container">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Order Ref</th>
-                <th>Store Partner</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><b>#LB-9021</b></td>
-                <td>Zayed Electronics Outlet</td>
-                <td>Gadgets & Appliances</td>
-                <td>₹24,500</td>
-                <td><span className="badge badge-success">Completed</span></td>
-              </tr>
-              <tr>
-                <td><b>#LB-9022</b></td>
-                <td>Al-Noor Fashion Hub</td>
-                <td>Clothing & Apparel</td>
-                <td>₹4,890</td>
-                <td><span className="badge badge-warning">Processing</span></td>
-              </tr>
-              <tr>
-                <td><b>#LB-9023</b></td>
-                <td>Apex Grocery Wholesalers</td>
-                <td>Daily Essentials</td>
-                <td>₹12,150</td>
-                <td><span className="badge badge-success">Completed</span></td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
