@@ -10,6 +10,7 @@ import DashboardView from './views/DashboardView';
 import UsersView from './views/UsersView';
 import CategoryView from './views/CategoryView';
 import ProductsView from './views/ProductsView';
+import CouponView from './views/CouponView';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -45,6 +46,7 @@ export default function App() {
       case 'users': return <UsersView />;
       case 'category': return <CategoryView />;
       case 'product': return <ProductsView />;
+      case 'coupon': return <CouponView />;
       default: return <DashboardView />;
     }
   };
