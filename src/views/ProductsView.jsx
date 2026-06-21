@@ -417,7 +417,7 @@ export default function ProductsView() {
                       </div>
                     </td>
                     <td>
-                      {/* Fixed: Maps dynamically over fallback database keys */}
+                      {/* Fixed: Maps dynamically over fallback database keys all done */}
                       <span className="badge badge-muted">
                         {getCategoryName(prod.categoryId || prod.category)}
                       </span>
