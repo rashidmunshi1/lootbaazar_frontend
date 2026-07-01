@@ -484,6 +484,12 @@ export default function OrdersView() {
         </div>
       </div>
 
+      {error && (
+        <div className="login-error" style={{ marginBottom: '16px', padding: '12px' }}>
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Main Data Table Card */}
       <div style={{
         background: 'var(--bg-secondary)',

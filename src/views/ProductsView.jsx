@@ -53,49 +53,6 @@ export default function ProductsView() {
     }, 3000);
   };
 
-  const getPaymentBadgeStyle = (status) => {
-    const s = (status || 'pending').toLowerCase();
-    if (s === 'paid') {
-      return {
-        padding: '4px 8px',
-        borderRadius: '12px',
-        fontSize: '11px',
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
-        border: '1px solid rgba(16, 185, 129, 0.25)',
-        color: '#10b981',
-        display: 'inline-flex',
-        alignItems: 'center'
-      };
-    }
-    if (s === 'pending') {
-      return {
-        padding: '4px 8px',
-        borderRadius: '12px',
-        fontSize: '11px',
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        backgroundColor: 'rgba(245, 158, 11, 0.12)',
-        border: '1px solid rgba(245, 158, 11, 0.25)',
-        color: '#f59e0b',
-        display: 'inline-flex',
-        alignItems: 'center'
-      };
-    }
-    return {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      backgroundColor: 'rgba(239, 68, 68, 0.12)',
-      border: '1px solid rgba(239, 68, 68, 0.25)',
-      color: '#ef4444',
-      display: 'inline-flex',
-      alignItems: 'center'
-    };
-  };
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [formError, setFormError] = useState('');
 
