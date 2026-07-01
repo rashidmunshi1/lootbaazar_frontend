@@ -40,8 +40,62 @@ export default function ProductsView() {
     category: '',
     userId: '',
     location: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    paymentStatus: 'pending'
   });
+
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToastMessage = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
+  const getPaymentBadgeStyle = (status) => {
+    const s = (status || 'pending').toLowerCase();
+    if (s === 'paid') {
+      return {
+        padding: '4px 8px',
+        borderRadius: '12px',
+        fontSize: '11px',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+        border: '1px solid rgba(16, 185, 129, 0.25)',
+        color: '#10b981',
+        display: 'inline-flex',
+        alignItems: 'center'
+      };
+    }
+    if (s === 'pending') {
+      return {
+        padding: '4px 8px',
+        borderRadius: '12px',
+        fontSize: '11px',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+        border: '1px solid rgba(245, 158, 11, 0.25)',
+        color: '#f59e0b',
+        display: 'inline-flex',
+        alignItems: 'center'
+      };
+    }
+    return {
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      backgroundColor: 'rgba(239, 68, 68, 0.12)',
+      border: '1px solid rgba(239, 68, 68, 0.25)',
+      color: '#ef4444',
+      display: 'inline-flex',
+      alignItems: 'center'
+    };
+  };
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [formError, setFormError] = useState('');
 
@@ -92,7 +146,8 @@ export default function ProductsView() {
       category: categories[0]?._id || '',
       userId: users[0]?._id || '',
       location: '',
-      phoneNumber: ''
+      phoneNumber: '',
+      paymentStatus: 'pending'
     });
     setSelectedFiles([]);
     setFormError('');
@@ -101,20 +156,70 @@ export default function ProductsView() {
 
   const handleOpenEditModal = (prod) => {
     setCurrentProduct(prod);
+    
+    // Support category being a string ID, populated object, or array
+    let selectedCategory = categories[0]?._id || '';
+    if (prod.category) {
+      if (Array.isArray(prod.category)) {
+        const firstCat = prod.category[0];
+        selectedCategory = firstCat && typeof firstCat === 'object' ? firstCat._id : firstCat;
+      } else if (typeof prod.category === 'object') {
+        selectedCategory = prod.category._id;
+      } else {
+        selectedCategory = prod.category;
+      }
+    }
+
+    // Support userId being a string ID or populated object
+    let selectedUserId = users[0]?._id || '';
+    if (prod.userId) {
+      selectedUserId = typeof prod.userId === 'object' ? prod.userId._id : prod.userId;
+    }
+
     setFormData({
       title: prod.title || '',
       description: prod.description || '',
       price: prod.price || '',
       stock: prod.stock || '',
       moq: prod.moq || '1',
-      category: prod.category || categories[0]?._id || '',
-      userId: prod.userId || users[0]?._id || '',
+      category: selectedCategory,
+      userId: selectedUserId,
       location: prod.location || '',
-      phoneNumber: prod.phoneNumber || ''
+      phoneNumber: prod.phoneNumber || '',
+      paymentStatus: prod.paymentStatus || 'pending'
     });
     setSelectedFiles([]);
     setFormError('');
     setIsModalOpen(true);
+  };
+
+  const handleUpdatePaymentStatus = async (productId, userId, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/products/payment-status`, {
+        method: 'PUT',
+        headers: {
+          'x-api-key': API_KEY,
+          'apikey': API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          productId,
+          userId,
+          paymentStatus: newStatus
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || errData.message || 'Failed to update payment status');
+      }
+      
+      // Update local state list
+      setProducts(prev => prev.map(p => p._id === productId ? { ...p, paymentStatus: newStatus } : p));
+      showToastMessage(`Payment status updated to "${newStatus.toUpperCase()}"!`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToastMessage(err.message || 'Error updating payment status', 'error');
+    }
   };
 
   const handleDelete = async (id) => {
@@ -170,6 +275,7 @@ export default function ProductsView() {
     payload.append('userId', formData.userId);
     payload.append('location', formData.location);
     payload.append('phoneNumber', formData.phoneNumber);
+    payload.append('paymentStatus', formData.paymentStatus);
 
     if (selectedFiles) {
       for (let i = 0; i < selectedFiles.length; i++) {
@@ -216,17 +322,61 @@ export default function ProductsView() {
   const filteredProducts = products.filter(prod => {
     const matchesSearch = prod.title.toLowerCase().includes(search.toLowerCase()) || 
                           (prod.description && prod.description.toLowerCase().includes(search.toLowerCase()));
-    const matchesCategory = categoryFilter === 'All' || prod.category === categoryFilter;
+    
+    let matchesCategory = false;
+    if (categoryFilter === 'All') {
+      matchesCategory = true;
+    } else if (Array.isArray(prod.category)) {
+      matchesCategory = prod.category.some(cat => {
+        if (cat && typeof cat === 'object') {
+          return cat._id === categoryFilter;
+        }
+        return cat === categoryFilter;
+      });
+    } else if (prod.category && typeof prod.category === 'object') {
+      matchesCategory = prod.category._id === categoryFilter;
+    } else {
+      matchesCategory = prod.category === categoryFilter;
+    }
+
     return matchesSearch && matchesCategory;
   });
 
-  const getCategoryName = (id) => {
-    const cat = categories.find(c => c._id === id);
+  const getCategoryName = (categoryField) => {
+    if (!categoryField) return 'Unknown';
+
+    // Handle array case (since backend schema sets category as [{type: ObjectId}])
+    if (Array.isArray(categoryField)) {
+      if (categoryField.length === 0) return 'Unknown';
+      return categoryField.map(cat => {
+        if (cat && typeof cat === 'object') {
+          return cat.name || 'Unknown';
+        }
+        const matched = categories.find(c => c._id === cat);
+        return matched ? matched.name : 'Unknown';
+      }).join(', ');
+    }
+
+    // Handle single populated object
+    if (typeof categoryField === 'object') {
+      return categoryField.name || 'Unknown';
+    }
+
+    // Handle single ID string
+    const cat = categories.find(c => c._id === categoryField);
     return cat ? cat.name : 'Unknown';
   };
 
-  const getUserName = (id) => {
-    const u = users.find(userObj => userObj._id === id);
+  const getUserName = (idField) => {
+    if (!idField) return 'Unknown';
+
+    // Handle populated user object
+    if (typeof idField === 'object') {
+      return idField.name || idField.mobileno || 'Unknown';
+    }
+
+    // Handle ID string
+    const u = users.find(userObj => userObj._id === idField);
     return u ? (u.name || u.mobileno) : 'Unknown';
   };
 
@@ -356,6 +506,7 @@ export default function ProductsView() {
                   <th>Stock / MOQ</th>
                   <th>Category</th>
                   <th>Merchant</th>
+                  <th>Payment</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -413,6 +564,28 @@ export default function ProductsView() {
                       </td>
                       <td>
                         <span style={{ fontSize: '13px', fontWeight: 500 }}>{getUserName(prod.userId)}</span>
+                      </td>
+                      <td>
+                        <select
+                          value={prod.paymentStatus || 'pending'}
+                          onChange={(e) => handleUpdatePaymentStatus(prod._id, typeof prod.userId === 'object' ? prod.userId._id : prod.userId, e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            color: (prod.paymentStatus === 'paid') ? '#10b981' : (prod.paymentStatus === 'pending' ? '#f59e0b' : '#ef4444'),
+                            fontWeight: '600',
+                            fontSize: '12px',
+                            textTransform: 'uppercase',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="pending" style={{ color: '#f59e0b' }}>Pending</option>
+                          <option value="paid" style={{ color: '#10b981' }}>Paid</option>
+                          <option value="cancel" style={{ color: '#ef4444' }}>Cancel</option>
+                        </select>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
@@ -590,6 +763,24 @@ export default function ProductsView() {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="prod-payment-status">Listing Payment Status</label>
+                    <select
+                      id="prod-payment-status"
+                      className="form-input"
+                      style={{ paddingLeft: '14px', background: 'var(--bg-tertiary)' }}
+                      value={formData.paymentStatus}
+                      onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="cancel">Cancel</option>
+                    </select>
+                  </div>
+                  <div className="form-group"></div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label" htmlFor="prod-images">Product Images (Up to 5)</label>
                   <input
@@ -634,6 +825,64 @@ export default function ProductsView() {
           </div>
         </div>
       )}
+      
+      {/* Toast Notification */}
+      {toast.show && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderLeft: `4px solid ${toast.type === 'success' ? '#10b981' : '#ef4444'}`,
+          boxShadow: 'var(--shadow-lg)',
+          borderRadius: '8px',
+          padding: '16px 24px',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          border: '1px solid var(--border-color)',
+          borderLeftWidth: '4px'
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444'
+          }} />
+          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+            {toast.message}
+          </span>
+          <button 
+            onClick={() => setToast({ show: false, message: '', type: 'success' })}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              marginLeft: '8px',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      <style>{`
+        @keyframes toastSlideIn {
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
