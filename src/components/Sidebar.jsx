@@ -8,6 +8,7 @@ import {
   Grid, 
   ShoppingBag, 
   Ticket,
+  Settings,
   LogOut
 } from 'lucide-react';
 
@@ -25,6 +26,7 @@ export default function Sidebar({
     { id: 'category', label: 'Categories', icon: Grid },
     { id: 'product', label: 'Products', icon: ShoppingBag },
     { id: 'coupon', label: 'Coupons', icon: Ticket },
+    { id: 'setting', label: 'Settings', icon: Settings },
   ];
 
   return (

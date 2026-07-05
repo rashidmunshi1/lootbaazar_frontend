@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Tag, Hash, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Tag, Hash, X, Loader2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
 const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
@@ -14,6 +14,9 @@ export default function CategoryView() {
 
   // Form State
   const [formData, setFormData] = useState({ name: '', order: 0 });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
   const fetchCategories = async () => {
@@ -43,6 +46,8 @@ export default function CategoryView() {
   const handleOpenAddModal = () => {
     setCurrentCategory(null);
     setFormData({ name: '', order: categories.length ? Math.max(...categories.map(c => c.order || 0)) + 1 : 1 });
+    setImageFile(null);
+    setImagePreview('');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -50,6 +55,8 @@ export default function CategoryView() {
   const handleOpenEditModal = (cat) => {
     setCurrentCategory(cat);
     setFormData({ name: cat.name, order: cat.order || 0 });
+    setImageFile(null);
+    setImagePreview(cat.image || '');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -83,21 +90,23 @@ export default function CategoryView() {
       return;
     }
 
-    const payload = {
-      name: formData.name,
-      order: Number(formData.order) || 0
-    };
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('order', String(formData.order || 0));
+    if (imageFile) {
+      data.append('image', imageFile);
+    }
 
     try {
+      setIsSaving(true);
       if (currentCategory) {
         // Edit API call
         const res = await fetch(`${API_BASE_URL}/categories/${currentCategory._id}/update`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
             'x-api-key': API_KEY
           },
-          body: JSON.stringify(payload)
+          body: data
         });
         if (!res.ok) {
           const errData = await res.json();
@@ -108,10 +117,9 @@ export default function CategoryView() {
         const res = await fetch(`${API_BASE_URL}/categories/store`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'x-api-key': API_KEY
           },
-          body: JSON.stringify(payload)
+          body: data
         });
         if (!res.ok) {
           const errData = await res.json();
@@ -123,6 +131,8 @@ export default function CategoryView() {
       fetchCategories();
     } catch (err) {
       setFormError(err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -221,7 +231,20 @@ export default function CategoryView() {
                         #{cat._id}
                       </td>
                       <td>
-                        <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {cat.image ? (
+                            <img 
+                              src={cat.image} 
+                              alt={cat.name} 
+                              style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', border: '1px solid var(--border-color, #323546)' }} 
+                            />
+                          ) : (
+                            <div style={{ width: '40px', height: '40px', borderRadius: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', border: '1px solid var(--border-color, #323546)' }}>
+                              <Tag size={16} />
+                            </div>
+                          )}
+                          <span style={{ fontWeight: 600 }}>{cat.name}</span>
+                        </div>
                       </td>
                       <td>
                         <span className="badge badge-info" style={{ fontWeight: 600 }}>{cat.order || 0}</span>
@@ -286,6 +309,33 @@ export default function CategoryView() {
                 </div>
 
                 <div className="form-group">
+                  <label className="form-label" htmlFor="cat-image">Category Image</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {imagePreview && (
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        style={{ width: '48px', height: '48px', borderRadius: '6px', objectFit: 'cover', border: '1px solid var(--border-color, #323546)' }} 
+                      />
+                    )}
+                    <input
+                      id="cat-image"
+                      type="file"
+                      accept="image/*"
+                      className="form-input"
+                      style={{ padding: '6px' }}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setImageFile(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
                   <label className="form-label" htmlFor="cat-order">Category Order</label>
                   <input
                     id="cat-order"
@@ -300,11 +350,18 @@ export default function CategoryView() {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)} disabled={isSaving}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {currentCategory ? 'Save Changes' : 'Create Category'}
+                <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                  {isSaving ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Saving...</span>
+                    </div>
+                  ) : (
+                    currentCategory ? 'Save Changes' : 'Create Category'
+                  )}
                 </button>
               </div>
             </form>
