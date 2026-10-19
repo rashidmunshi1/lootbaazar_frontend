@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Loader2, Key, DollarSign, MessageCircle, Phone, Lock, FileText, Globe, Hash } from 'lucide-react';
+import { 
+  Settings, 
+  Save, 
+  Loader2, 
+  Key, 
+  DollarSign, 
+  MessageCircle, 
+  Send, 
+  CheckCircle2, 
+  AlertCircle, 
+  Eye, 
+  EyeOff,
+  User,
+  Radio
+} from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api/frontend';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3002/api/frontend';
 const API_KEY = process.env.REACT_APP_API_KEY || 'lootbaazarV5kAYC7SJhFGWEnWynVjHW0UU7kA8N9x';
 
 const tabStyles = {
@@ -10,7 +24,7 @@ const tabStyles = {
     gap: '0',
     marginBottom: '24px',
     borderBottom: '1px solid var(--border-color, #2a2f3a)',
-    maxWidth: '600px',
+    maxWidth: '650px',
     margin: '0 auto 24px auto',
   },
   tab: (isActive) => ({
@@ -35,12 +49,16 @@ export default function SettingView() {
   const [apiKey, setApiKey] = useState('');
   const [amount, setAmount] = useState(0);
 
-  // WhatsApp Meta API fields
-  const [waPhoneNumberId, setWaPhoneNumberId] = useState('');
-  const [waAccessToken, setWaAccessToken] = useState('');
-  const [waTemplateName, setWaTemplateName] = useState('');
-  const [waTemplateLanguage, setWaTemplateLanguage] = useState('');
-  const [waTemplateParamsCount, setWaTemplateParamsCount] = useState(0);
+  // WhatsApp AiSensy API fields
+  const [waApiKey, setWaApiKey] = useState('');
+  const [waCampaignName, setWaCampaignName] = useState('lbotp');
+  const [waUserName, setWaUserName] = useState('Galaxy Traders');
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  // Live Test states
+  const [testPhone, setTestPhone] = useState('917016685053');
+  const [isTesting, setIsTesting] = useState(false);
+  const [testStatus, setTestStatus] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -60,13 +78,11 @@ export default function SettingView() {
       setApiKey(data.apiKey || '');
       setAmount(data.amount || 0);
 
-      // WhatsApp fields
+      // WhatsApp AiSensy fields
       const wa = data.whatsapp || {};
-      setWaPhoneNumberId(wa.phoneNumberId || '');
-      setWaAccessToken(wa.accessToken || '');
-      setWaTemplateName(wa.templateName || '');
-      setWaTemplateLanguage(wa.templateLanguage || '');
-      setWaTemplateParamsCount(wa.templateParamsCount || 0);
+      setWaApiKey(wa.apiKey || '');
+      setWaCampaignName(wa.campaignName || 'lbotp');
+      setWaUserName(wa.userName || 'Galaxy Traders');
 
       setError(null);
     } catch (err) {
@@ -98,11 +114,9 @@ export default function SettingView() {
           apiKey,
           amount: Number(amount) || 0,
           whatsapp: {
-            phoneNumberId: waPhoneNumberId,
-            accessToken: waAccessToken,
-            templateName: waTemplateName,
-            templateLanguage: waTemplateLanguage,
-            templateParamsCount: Number(waTemplateParamsCount) || 0,
+            apiKey: waApiKey,
+            campaignName: waCampaignName,
+            userName: waUserName,
           }
         })
       });
@@ -121,6 +135,50 @@ export default function SettingView() {
     }
   };
 
+  const handleTestWhatsApp = async () => {
+    if (!testPhone.trim()) {
+      setTestStatus({ type: 'error', message: 'Please enter a test phone number (e.g. 917016685053)' });
+      return;
+    }
+    if (!waApiKey.trim()) {
+      setTestStatus({ type: 'error', message: 'Please provide the AiSensy API Key first.' });
+      return;
+    }
+
+    try {
+      setIsTesting(true);
+      setTestStatus(null);
+      const res = await fetch(`${API_BASE_URL}/settings/test-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        },
+        body: JSON.stringify({
+          destination: testPhone.trim(),
+          apiKey: waApiKey.trim(),
+          campaignName: waCampaignName.trim() || 'lbotp',
+          userName: waUserName.trim() || 'Galaxy Traders'
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Failed to send test OTP via AiSensy');
+      }
+
+      setTestStatus({
+        type: 'success',
+        message: `OTP "${data.otp}" sent successfully! Message ID: ${data.response?.submitted_message_id || 'Submitted'}`
+      });
+    } catch (err) {
+      setTestStatus({ type: 'error', message: err.message });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+
   return (
     <div className="animate-fade">
       {/* Header Card */}
@@ -129,7 +187,7 @@ export default function SettingView() {
           <div>
             <div className="stat-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary, #fff)' }}>Global Settings</div>
             <div className="stat-subtitle" style={{ fontSize: '0.875rem', color: 'var(--text-muted, #8a99ad)', marginTop: '4px' }}>
-              Configure application parameters such as the default API gateway credentials and payment amount triggers.
+              Configure application parameters including payment amounts and AiSensy WhatsApp Campaign credentials.
             </div>
           </div>
           <div className="stat-icon purple">
@@ -157,6 +215,7 @@ export default function SettingView() {
           alignItems: 'center',
           gap: '8px'
         }}>
+          <CheckCircle2 size={16} />
           <span>{success}</span>
         </div>
       )}
@@ -177,12 +236,12 @@ export default function SettingView() {
           type="button"
         >
           <MessageCircle size={16} />
-          WhatsApp (Meta API)
+          WhatsApp (AiSensy API)
         </button>
       </div>
 
       {/* Main Settings Form Card */}
-      <div className="table-card" style={{ padding: '24px', maxWidth: '600px', margin: '0 auto' }}>
+      <div className="table-card" style={{ padding: '24px', maxWidth: '650px', margin: '0 auto' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
             <Loader2 className="animate-spin" size={24} style={{ margin: '0 auto 12px auto' }} />
@@ -231,109 +290,191 @@ export default function SettingView() {
               </>
             )}
 
-            {/* ===== WhatsApp (Meta API) Tab ===== */}
+            {/* ===== WhatsApp (AiSensy API) Tab ===== */}
             {activeTab === 'whatsapp' && (
               <>
                 <div style={{ 
-                  padding: '12px 16px', 
+                  padding: '14px 16px', 
                   borderRadius: '8px', 
                   backgroundColor: 'rgba(37, 211, 102, 0.08)', 
-                  border: '1px solid rgba(37, 211, 102, 0.2)', 
+                  border: '1px solid rgba(37, 211, 102, 0.25)', 
                   color: 'var(--text-muted, #8a99ad)',
                   fontSize: '0.85rem',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+                  alignItems: 'flex-start',
+                  gap: '12px'
                 }}>
-                  <MessageCircle size={16} style={{ color: '#25D366', flexShrink: 0 }} />
-                  <span>Configure your WhatsApp Business API credentials from <strong style={{ color: 'var(--text-primary, #fff)' }}>Meta Developer Portal</strong>.</span>
+                  <MessageCircle size={20} style={{ color: '#25D366', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <div style={{ color: 'var(--text-primary, #fff)', fontWeight: 600, marginBottom: '2px' }}>
+                      AiSensy WhatsApp Campaign API v2
+                    </div>
+                    <div>
+                      Endpoint: <code style={{ color: '#25D366', background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem' }}>POST https://backend.aisensy.com/campaign/t1/api/v2</code>
+                    </div>
+                  </div>
                 </div>
 
+                {/* AiSensy API Key */}
                 <div className="form-group">
-                  <label className="form-label" htmlFor="setting-wa-phone-id" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Phone size={14} />
-                    <span>Phone Number ID</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="form-label" htmlFor="setting-aisensy-key" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Key size={14} />
+                      <span>AiSensy API Key (JWT)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted, #8a99ad)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.78rem'
+                      }}
+                    >
+                      {showApiKey ? <EyeOff size={13} /> : <Eye size={13} />}
+                      <span>{showApiKey ? 'Hide' : 'Show'}</span>
+                    </button>
+                  </div>
+                  <input
+                    id="setting-aisensy-key"
+                    type={showApiKey ? "text" : "password"}
+                    className="form-input"
+                    placeholder="Enter AiSensy API Key token"
+                    style={{ paddingLeft: '14px', fontFamily: showApiKey ? 'monospace' : 'inherit', fontSize: '0.85rem' }}
+                    value={waApiKey}
+                    onChange={(e) => setWaApiKey(e.target.value)}
+                    disabled={isSaving}
+                  />
+                  <small style={{ color: 'var(--text-muted, #8a99ad)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    From your AiSensy Dashboard &gt; Manage &gt; API Key.
+                  </small>
+                </div>
+
+                {/* Campaign Name */}
+                <div className="form-group">
+                  <label className="form-label" htmlFor="setting-aisensy-campaign" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Radio size={14} />
+                    <span>Campaign Name</span>
                   </label>
                   <input
-                    id="setting-wa-phone-id"
+                    id="setting-aisensy-campaign"
                     type="text"
                     className="form-input"
-                    placeholder="Enter Phone Number ID"
+                    placeholder="e.g. lbotp"
                     style={{ paddingLeft: '14px' }}
-                    value={waPhoneNumberId}
-                    onChange={(e) => setWaPhoneNumberId(e.target.value)}
+                    value={waCampaignName}
+                    onChange={(e) => setWaCampaignName(e.target.value)}
                     disabled={isSaving}
                   />
+                  <small style={{ color: 'var(--text-muted, #8a99ad)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    The live campaign name approved on AiSensy for OTP verification.
+                  </small>
                 </div>
 
+                {/* User / Business Name */}
                 <div className="form-group">
-                  <label className="form-label" htmlFor="setting-wa-access-token" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Lock size={14} />
-                    <span>Access Token</span>
+                  <label className="form-label" htmlFor="setting-aisensy-username" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <User size={14} />
+                    <span>Sender / Business Name (userName)</span>
                   </label>
                   <input
-                    id="setting-wa-access-token"
-                    type="password"
-                    className="form-input"
-                    placeholder="Enter Access Token"
-                    style={{ paddingLeft: '14px' }}
-                    value={waAccessToken}
-                    onChange={(e) => setWaAccessToken(e.target.value)}
-                    disabled={isSaving}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="setting-wa-template-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FileText size={14} />
-                    <span>Template Name</span>
-                  </label>
-                  <input
-                    id="setting-wa-template-name"
+                    id="setting-aisensy-username"
                     type="text"
                     className="form-input"
-                    placeholder="e.g. order_confirmation"
+                    placeholder="e.g. Galaxy Traders"
                     style={{ paddingLeft: '14px' }}
-                    value={waTemplateName}
-                    onChange={(e) => setWaTemplateName(e.target.value)}
+                    value={waUserName}
+                    onChange={(e) => setWaUserName(e.target.value)}
                     disabled={isSaving}
                   />
+                  <small style={{ color: 'var(--text-muted, #8a99ad)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                    Sender / Brand identity passed to AiSensy.
+                  </small>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="setting-wa-template-lang" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Globe size={14} />
-                    <span>Template Language</span>
-                  </label>
-                  <input
-                    id="setting-wa-template-lang"
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. en_US"
-                    style={{ paddingLeft: '14px' }}
-                    value={waTemplateLanguage}
-                    onChange={(e) => setWaTemplateLanguage(e.target.value)}
-                    disabled={isSaving}
-                  />
+                {/* Live Test WhatsApp Section */}
+                <div style={{
+                  marginTop: '10px',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-color, #2a2f3a)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary, #fff)' }}>
+                      <Send size={15} style={{ color: 'var(--accent-primary, #f97316)' }} />
+                      <span>Test WhatsApp Message</span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #8a99ad)' }}>Direct live test</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. 917016685053"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      style={{ paddingLeft: '14px', flex: 1 }}
+                      disabled={isTesting}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleTestWhatsApp}
+                      className="btn"
+                      disabled={isTesting}
+                      style={{
+                        padding: '10px 18px',
+                        backgroundColor: '#25D366',
+                        color: '#000',
+                        fontWeight: 600,
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {isTesting ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send size={15} />
+                          <span>Send Test OTP</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {testStatus && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '10px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.82rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: testStatus.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                      border: `1px solid ${testStatus.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                      color: testStatus.type === 'success' ? '#10b981' : '#ef4444'
+                    }}>
+                      {testStatus.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+                      <span>{testStatus.message}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="setting-wa-template-params" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Hash size={14} />
-                    <span>Template Parameters Count</span>
-                  </label>
-                  <input
-                    id="setting-wa-template-params"
-                    type="number"
-                    min="0"
-                    className="form-input"
-                    placeholder="e.g. 3"
-                    style={{ paddingLeft: '14px' }}
-                    value={waTemplateParamsCount}
-                    onChange={(e) => setWaTemplateParamsCount(e.target.value)}
-                    disabled={isSaving}
-                  />
-                </div>
               </>
             )}
 
