@@ -78,7 +78,15 @@ export default function ProductsView() {
         headers: { 'x-api-key': API_KEY }
       });
       const prodData = await prodRes.json();
-      setProducts(prodData.products || []);
+      const rawProducts = Array.isArray(prodData.products) ? prodData.products : [];
+      // Ensure latest added product is always first
+      rawProducts.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b._id || '').localeCompare(a._id || '');
+      });
+      setProducts(rawProducts);
       setError(null);
     } catch (err) {
       console.error(err);
